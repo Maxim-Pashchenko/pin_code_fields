@@ -217,6 +217,22 @@ class PinCodeTextField extends StatefulWidget {
   /// Builds separator children
   final IndexedWidgetBuilder? separatorBuilder;
 
+  /// Provides custom semantics labels for each PIN cell. Receives the zero-based index,
+  /// total field length, and whether the cell currently has a value. Defaults to a label in the
+  /// form "Enter code digit {index + 1}".
+  final String Function(int index, int length, bool hasValue)?
+      semanticsLabelBuilder;
+
+  /// Optional semantics hint read alongside each PIN cell. Defaults to "Double tap to edit".
+  final String? semanticsHint;
+
+  /// Semantics value announced when a cell contains a character but obscuring is enabled. Defaults
+  /// to "Filled".
+  final String semanticsObscuredValue;
+
+  /// Semantics value announced when a cell is empty. Defaults to "Empty".
+  final String semanticsEmptyValue;
+
   PinCodeTextField({
     Key? key,
     required this.appContext,
@@ -282,7 +298,11 @@ class PinCodeTextField extends StatefulWidget {
     /// Default create internal [AutofillGroup]
     this.useExternalAutoFillGroup = false,
     this.scrollPadding = const EdgeInsets.all(20),
-    this.separatorBuilder
+    this.separatorBuilder,
+    this.semanticsLabelBuilder,
+    this.semanticsHint,
+    this.semanticsObscuredValue = 'Filled',
+    this.semanticsEmptyValue = 'Empty',
   })  : assert(obscuringCharacter.isNotEmpty),
         super(key: key);
 
@@ -338,6 +358,36 @@ class _PinCodeTextFieldState extends State<PinCodeTextField>
       .merge(widget.hintStyle);
 
   bool get _hintAvailable => widget.hintCharacter != null;
+
+  bool _isFieldFocused(int index) {
+    if (!_focusNode!.hasFocus) return false;
+    return (_selectedIndex == index) ||
+        (_selectedIndex == index + 1 && index + 1 == widget.length);
+  }
+
+  String _buildSemanticsLabel(int index) {
+    final hasValue = _inputList[index].isNotEmpty;
+    return widget.semanticsLabelBuilder?.call(index, widget.length, hasValue) ??
+        'Enter code digit ${index + 1}';
+  }
+
+  String _buildSemanticsValue(int index) {
+    final value = _inputList[index];
+    if (value.isEmpty) {
+      return widget.semanticsEmptyValue;
+    }
+
+    if (widget.obscureText) {
+      return widget.semanticsObscuredValue;
+    }
+
+    return value;
+  }
+
+  String? _buildSemanticsHint() {
+    if (!widget.enabled || widget.readOnly) return null;
+    return widget.semanticsHint ?? 'Double tap to edit';
+  }
 
   @override
   void initState() {
@@ -896,70 +946,86 @@ class _PinCodeTextFieldState extends State<PinCodeTextField>
   List<Widget> _generateFields() {
     var result = <Widget>[];
     for (int i = 0; i < widget.length; i++) {
+      final semanticsLabel = _buildSemanticsLabel(i);
+      final semanticsValue = _buildSemanticsValue(i);
+      final semanticsHint = _buildSemanticsHint();
+
       result.add(
-        Container(
-            padding: _pinTheme.fieldOuterPadding,
-            child: AnimatedContainer(
-              curve: widget.animationCurve,
-              duration: widget.animationDuration,
-              width: _pinTheme.fieldWidth,
-              height: _pinTheme.fieldHeight,
-              decoration: BoxDecoration(
-                color: widget.enableActiveFill
-                    ? _getFillColorFromIndex(i)
-                    : Colors.transparent,
-                boxShadow: (_pinTheme.activeBoxShadows != null ||
-                    _pinTheme.inActiveBoxShadows != null)
-                    ? _getBoxShadowFromIndex(i)
-                    : widget.boxShadows,
-                shape: _pinTheme.shape == PinCodeFieldShape.circle
-                    ? BoxShape.circle
-                    : BoxShape.rectangle,
-                borderRadius: borderRadius,
-                border: _pinTheme.shape == PinCodeFieldShape.underline
-                    ? Border(
-                  bottom: BorderSide(
-                    color: _getColorFromIndex(i),
-                    width: _getBorderWidthForIndex(i),
+        Semantics(
+          container: true,
+          label: semanticsLabel,
+          value: semanticsValue,
+          hint: semanticsHint,
+          textField: true,
+          focusable: widget.enabled,
+          focused: _isFieldFocused(i),
+          enabled: widget.enabled,
+          readOnly: widget.readOnly,
+          onTap: widget.enabled ? _onFocus : null,
+          child: Container(
+              padding: _pinTheme.fieldOuterPadding,
+              child: AnimatedContainer(
+                curve: widget.animationCurve,
+                duration: widget.animationDuration,
+                width: _pinTheme.fieldWidth,
+                height: _pinTheme.fieldHeight,
+                decoration: BoxDecoration(
+                  color: widget.enableActiveFill
+                      ? _getFillColorFromIndex(i)
+                      : Colors.transparent,
+                  boxShadow: (_pinTheme.activeBoxShadows != null ||
+                          _pinTheme.inActiveBoxShadows != null)
+                      ? _getBoxShadowFromIndex(i)
+                      : widget.boxShadows,
+                  shape: _pinTheme.shape == PinCodeFieldShape.circle
+                      ? BoxShape.circle
+                      : BoxShape.rectangle,
+                  borderRadius: borderRadius,
+                  border: _pinTheme.shape == PinCodeFieldShape.underline
+                      ? Border(
+                          bottom: BorderSide(
+                            color: _getColorFromIndex(i),
+                            width: _getBorderWidthForIndex(i),
+                          ),
+                        )
+                      : Border.all(
+                          color: _getColorFromIndex(i),
+                          width: _getBorderWidthForIndex(i),
+                        ),
+                ),
+                child: Center(
+                  child: AnimatedSwitcher(
+                    switchInCurve: widget.animationCurve,
+                    switchOutCurve: widget.animationCurve,
+                    duration: widget.animationDuration,
+                    transitionBuilder: (child, animation) {
+                      if (widget.animationType == AnimationType.scale) {
+                        return ScaleTransition(
+                          scale: animation,
+                          child: child,
+                        );
+                      } else if (widget.animationType == AnimationType.fade) {
+                        return FadeTransition(
+                          opacity: animation,
+                          child: child,
+                        );
+                      } else if (widget.animationType == AnimationType.none) {
+                        return child;
+                      } else {
+                        return SlideTransition(
+                          position: Tween<Offset>(
+                            begin: const Offset(0, .5),
+                            end: Offset.zero,
+                          ).animate(animation),
+                          child: child,
+                        );
+                      }
+                    },
+                    child: buildChild(i),
                   ),
-                )
-                    : Border.all(
-                  color: _getColorFromIndex(i),
-                  width: _getBorderWidthForIndex(i),
                 ),
-              ),
-              child: Center(
-                child: AnimatedSwitcher(
-                  switchInCurve: widget.animationCurve,
-                  switchOutCurve: widget.animationCurve,
-                  duration: widget.animationDuration,
-                  transitionBuilder: (child, animation) {
-                    if (widget.animationType == AnimationType.scale) {
-                      return ScaleTransition(
-                        scale: animation,
-                        child: child,
-                      );
-                    } else if (widget.animationType == AnimationType.fade) {
-                      return FadeTransition(
-                        opacity: animation,
-                        child: child,
-                      );
-                    } else if (widget.animationType == AnimationType.none) {
-                      return child;
-                    } else {
-                      return SlideTransition(
-                        position: Tween<Offset>(
-                          begin: const Offset(0, .5),
-                          end: Offset.zero,
-                        ).animate(animation),
-                        child: child,
-                      );
-                    }
-                  },
-                  child: buildChild(i),
-                ),
-              ),
-            )),
+              )),
+        ),
       );
       if (widget.separatorBuilder != null && i != widget.length - 1) {
         result.add(widget.separatorBuilder!(context, i));
