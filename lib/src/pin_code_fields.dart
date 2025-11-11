@@ -219,7 +219,7 @@ class PinCodeTextField extends StatefulWidget {
 
   /// Provides custom semantics labels for each PIN cell. Receives the zero-based index,
   /// total field length, and whether the cell currently has a value. Defaults to a label in the
-  /// form "Enter code digit {index + 1}".
+  /// form "Enter code character {index + 1}".
   final String Function(int index, int length, bool hasValue)?
       semanticsLabelBuilder;
 
@@ -301,7 +301,7 @@ class PinCodeTextField extends StatefulWidget {
     this.separatorBuilder,
     this.semanticsLabelBuilder,
     this.semanticsHint,
-    this.semanticsObscuredValue = 'Filled',
+    this.semanticsObscuredValue = 'Character entered',
     this.semanticsEmptyValue = 'Empty',
   })  : assert(obscuringCharacter.isNotEmpty),
         super(key: key);
@@ -368,7 +368,7 @@ class _PinCodeTextFieldState extends State<PinCodeTextField>
   String _buildSemanticsLabel(int index) {
     final hasValue = _inputList[index].isNotEmpty;
     return widget.semanticsLabelBuilder?.call(index, widget.length, hasValue) ??
-        'Enter code digit ${index + 1}';
+        'Enter code character ${index + 1}';
   }
 
   String _buildSemanticsValue(int index) {
@@ -386,7 +386,7 @@ class _PinCodeTextFieldState extends State<PinCodeTextField>
 
   String? _buildSemanticsHint() {
     if (!widget.enabled || widget.readOnly) return null;
-    return widget.semanticsHint ?? 'Double tap to edit';
+    return widget.semanticsHint ?? 'Double tap to edit character';
   }
 
   @override
