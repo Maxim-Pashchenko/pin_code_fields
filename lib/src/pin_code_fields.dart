@@ -223,9 +223,6 @@ class PinCodeTextField extends StatefulWidget {
   final String Function(int index, int length, bool hasValue)?
       semanticsLabelBuilder;
 
-  /// Optional semantics hint read alongside each PIN cell. Defaults to "Double tap to edit".
-  final String? semanticsHint;
-
   /// Semantics value announced when a cell contains a character but obscuring is enabled. Defaults
   /// to "Filled".
   final String semanticsObscuredValue;
@@ -300,7 +297,6 @@ class PinCodeTextField extends StatefulWidget {
     this.scrollPadding = const EdgeInsets.all(20),
     this.separatorBuilder,
     this.semanticsLabelBuilder,
-    this.semanticsHint,
     this.semanticsObscuredValue = 'Character entered',
     this.semanticsEmptyValue = 'Empty',
   })  : assert(obscuringCharacter.isNotEmpty),
@@ -382,11 +378,6 @@ class _PinCodeTextFieldState extends State<PinCodeTextField>
     }
 
     return value;
-  }
-
-  String? _buildSemanticsHint() {
-    if (!widget.enabled || widget.readOnly) return null;
-    return widget.semanticsHint ?? 'Double tap to edit character';
   }
 
   @override
@@ -947,14 +938,12 @@ class _PinCodeTextFieldState extends State<PinCodeTextField>
     for (int i = 0; i < widget.length; i++) {
       final semanticsLabel = _buildSemanticsLabel(i);
       final semanticsValue = _buildSemanticsValue(i);
-      final semanticsHint = _buildSemanticsHint();
 
       result.add(
         Semantics(
           container: true,
           label: semanticsLabel,
           value: semanticsValue,
-          hint: semanticsHint,
           textField: true,
           focusable: widget.enabled,
           focused: _isFieldFocused(i),
