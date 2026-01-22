@@ -941,13 +941,13 @@ class _PinCodeTextFieldState extends State<PinCodeTextField>
 
       result.add(
         Semantics(
-          container: true,
+          // container: true,
           label: semanticsLabel,
           value: semanticsValue,
-          textField: true,
-          focusable: widget.enabled,
-          focused: _isFieldFocused(i),
-          enabled: widget.enabled,
+          // textField: true,
+          // focusable: widget.enabled,
+          // focused: _isFieldFocused(i),
+          // enabled: widget.enabled,
           // readOnly: widget.readOnly,
           // onTap: widget.enabled ? _onFocus : null,
           child: Container(
